@@ -77,6 +77,9 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+// 옵션 그리고 src와 dest에 따라서 분기 처리 후 복사합니다.
+// with -r option, 디렉터리 복사 모드
+// without -r option, 단일 파일 복사 모드
 int copy_entry(const char *src, const char *dest) {
     struct stat st_src;
 
@@ -98,7 +101,7 @@ int copy_entry(const char *src, const char *dest) {
         }
         /* 이후 코드들은 recursive_opt == true일 때만 실행됨. */
 
-        /* 디렉터리 복사 시 SOURCE와 TARGET 모두 디렉터리임이 보장되어야함. */
+        /* 디렉터리 복사 시 SOURCE와 TARGET 모두 디렉터리임이 보장되어야함. (TARGET은 없어도 됨.) */
         if (lstat(dest, &st_dst) != 0) {
             /* dest directory가 없다면 생성 */
             if (mkdirs(dest) != 0) {
@@ -106,6 +109,7 @@ int copy_entry(const char *src, const char *dest) {
                 return -1;
             }
 
+            // src가 디렉터리이고 dest가 없을 때 재귀적으로 복사
             if (copy_directory_recursive(src, dest) != 0) {
                 fprintf(stderr, "copy_directory_recursive error: %s -> %s\n",
                         src, dest);
@@ -119,14 +123,16 @@ int copy_entry(const char *src, const char *dest) {
                     "with -r, TARGET must be a directory (not a file)\n");
             return -1;
         } else if (S_ISDIR(st_dst.st_mode)) {
+            // src와 dest 모두 디렉터리인 경우, 재귀적으로 복사
             if (copy_directory_recursive(src, dest) != 0) {
                 fprintf(stderr, "copy_directory_recursive error: %s -> %s\n",
                         src, dest);
                 return -1;
             }
         }
-        /* 그 외 파일 유형들은 무시 */
+        // 그 외 파일 유형들은 무시
     } else if (S_ISREG(st_src.st_mode)) {
+        // src가 정규 파일인 경우
         struct stat st_dst;
 
         if (recursive_opt) {
@@ -163,6 +169,7 @@ int copy_entry(const char *src, const char *dest) {
         return -1;
     }
 
+    // -p 옵션이 켜져있다면, 파일 및 디렉터리 복사 이후에 속성까지 복사합니다.
     if (preserve_opt) {
         if (process_preserve(src, dest) != 0) {
             fprintf(stderr, "process_preserve error: %s -> %s\n", src, dest);
