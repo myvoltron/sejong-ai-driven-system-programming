@@ -38,7 +38,7 @@ void parse_line(char *line, char **argv) {
 
 // --- SIGQUIT : AI 모드 토글 ---
 void handle_sigquit(int signo) {
-    (void)signo;
+    (void)signo; // signo 사용 안함. 안쓰면 경고가 뜸.
     const char msg_on[]  = "\n" COLOR_CYAN "╔════════════════════╗\n"
                            "║   AI MODE ON 🤖    ║\n"
                            "╚════════════════════╝" COLOR_RESET "\n"
@@ -47,35 +47,25 @@ void handle_sigquit(int signo) {
                            "║  AI MODE OFF 💤    ║\n"
                            "╚════════════════════╝" COLOR_RESET "\n"
                            COLOR_GREEN "mini-shell> " COLOR_RESET;
-    // your code here  // ai mode 토글
     ai_mode = !ai_mode;
-    // your code here  // ai mode 에 따라서 위의 상태 메시지 출력
-    if (ai_mode) {
-        write(STDOUT_FILENO, msg_on, sizeof(msg_on) - 1);
-    } else {
-        write(STDOUT_FILENO, msg_off, sizeof(msg_off) - 1);
-    }
+    write(STDOUT_FILENO, ai_mode ? msg_on : msg_off,
+          ai_mode ? sizeof(msg_on) - 1 : sizeof(msg_off) - 1);
 }
 
 // --- SIGINT (Ctrl+\) : AI reasoning 중단 ---
 void handle_sigint(int signo) {
-    (void)signo;
-    const char msg[] = "\n" COLOR_RED "⚠️  AI REASONING INTERRUPTED ⚠️" COLOR_RESET "\n";
-                          
-    // your code here  { // AI 모드이고, AI가 생각 중일 때
+    (void)signo; // signo 사용 안함. 안쓰면 경고가 뜸. 
+    const char msg[] = "\n" COLOR_RED "⚠️  AI REASONING INTERRUPTED ⚠️" COLOR_RESET "\n";                        
     if (ai_mode && ai_thinking) {
-        write(STDOUT_FILENO, msg, sizeof(msg) - 1);
         ai_thinking = 0;
+        
+        write(STDOUT_FILENO, msg, sizeof(msg) - 1);
     }
-    // your code here         
-    // your code here 
-    
 }
 
 // --- 터미널 모드 제어 ---
 void setup_terminal(struct termios *orig) {
     struct termios new_term;
-    // your code here  // 원래 터미널 속성 저장
     tcgetattr(STDIN_FILENO, orig);
     new_term = *orig;
     // ICANON은 유지 (라인 편집 가능), ISIG는 켜서 Ctrl+C 등을 시그널로 변환
@@ -84,12 +74,9 @@ void setup_terminal(struct termios *orig) {
     new_term.c_cc[VQUIT] = 20;  // Ctrl+T
     // Ctrl+\를 VINTR에 매핑 (SIGINT 발생) - AI thinking 중단
     new_term.c_cc[VINTR] = 28;  // Ctrl+\ (ASCII 28)
-    
-    // your code here  // tcsetattr 을 이용하여 터미널에 키 설정 적용
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_term);
 }
 void restore_terminal(struct termios *orig) {
-    // your code here
     tcsetattr(STDIN_FILENO, TCSAFLUSH, orig);
 }
 
@@ -104,10 +91,8 @@ int main(void) {
     signal(SIGTTIN, SIG_IGN); // background 프로세스가 터미널에서 읽으려고 하면, 무시
     signal(SIGTTOU, SIG_IGN); // background 프로세스가 터미널에 쓰려고 하면, 무시
     signal(SIGTSTP, SIG_IGN); // Ctrl+Z 무시 (쉘은 멈추면 안됨)
-    // your code here  // Ctrl+T
-    signal(SIGQUIT, handle_sigquit);
-    // your code here // Ctrl+backslash
-    signal(SIGINT, handle_sigint);
+    signal(SIGQUIT, handle_sigquit);  // Ctrl+T
+    signal(SIGINT,  handle_sigint);   // Ctrl+backslash
 
     setup_terminal(&orig_termios);
 
@@ -159,7 +144,7 @@ int main(void) {
             }
 
             if (ai_thinking)
-                printf("\n" COLOR_GREEN "✓ [AI] Thought complete!" COLOR_RESET "\n");
+                printf("\n" COLOR_GREEN "✓ [AI] Thought complete!" COLOR_RESET "\n");            
 
             ai_thinking = 0;
             printf(COLOR_MAGENTA "AI-shell> " COLOR_RESET);
