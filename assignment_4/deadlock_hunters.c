@@ -139,19 +139,23 @@ static void alarm_handler(int signo) {
         "\n=== 데드락 감지됨! (5초 경과) ===\n  감지된 스레드들:\n";
     const char deadlock_alert_outro_message[] = "프로그램을 종료합니다.\n";
 
-    write(STDOUT_FILENO, deadlock_alert_intro_message,
-          sizeof(deadlock_alert_intro_message) - 1);
+    bool confirmed_deadlock = dfs_cycle();
+    if (confirmed_deadlock) {
+        write(STDOUT_FILENO, deadlock_alert_intro_message,
+              sizeof(deadlock_alert_intro_message) - 1);
 
-    for (int i = 0; i < dstate.count; i++) {
-        const char* p = dstate.lines[i];
-        size_t len = strlen(p);
-        if (len > 0) {
-            write(STDOUT_FILENO, p, len);
+        for (int i = 0; i < dstate.count; i++) {
+            const char* p = dstate.lines[i];
+            size_t len = strlen(p);
+            if (len > 0) {
+                write(STDOUT_FILENO, p, len);
+            }
         }
+        write(STDOUT_FILENO, deadlock_alert_outro_message,
+              sizeof(deadlock_alert_outro_message) - 1);
+        _exit(0);
     }
-    write(STDOUT_FILENO, deadlock_alert_outro_message,
-          sizeof(deadlock_alert_outro_message) - 1);
-    _exit(0);
+    // deadlock이 아니면 프로그램 계속 실행
 }
 
 void start_deadlock_alarm(void) {
